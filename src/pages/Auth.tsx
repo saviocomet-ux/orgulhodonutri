@@ -56,11 +56,10 @@ const Auth = () => {
       if (error) {
         toast.error(error.message);
       } else if (signUpData.user && isNutri) {
-        // Mark invite code as used and upgrade role
-        await supabase
-          .from("invite_codes")
-          .update({ is_used: true, used_by: signUpData.user.id, used_at: new Date().toISOString() })
-          .eq("code", inviteCode.trim().toUpperCase());
+        // Call edge function to upgrade role with service key
+        await supabase.functions.invoke("upgrade-to-nutri", {
+          body: { invite_code: inviteCode.trim().toUpperCase(), user_id: signUpData.user.id },
+        });
 
         // The trigger creates 'patient' role by default, we need an edge function to upgrade
         // For now we'll handle this via a separate mechanism after email confirmation
