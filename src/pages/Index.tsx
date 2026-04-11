@@ -1,9 +1,10 @@
 import { useAuth } from "@/hooks/useAuth";
 import Auth from "./Auth";
 import Dashboard from "./Dashboard";
+import NutriDashboard from "./NutriDashboard";
 
 const Index = () => {
-  const { session, loading } = useAuth();
+  const { session, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -13,7 +14,9 @@ const Index = () => {
     );
   }
 
-  return session ? <Dashboard /> : <Auth />;
+  if (!session) return <Auth />;
+
+  return role === "admin" ? <NutriDashboard /> : <Dashboard />;
 };
 
 export default Index;

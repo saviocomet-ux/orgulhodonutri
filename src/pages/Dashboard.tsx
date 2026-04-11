@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Droplets, Flame, LogOut, User, Plus, Camera, Trash2 } from "lucide-react";
+import { Droplets, Flame, LogOut, User, Plus, Camera, Trash2, Link } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import MealDialog from "@/components/MealDialog";
 import ProfileDialog from "@/components/ProfileDialog";
+import LinkNutriDialog from "@/components/patient/LinkNutriDialog";
+import QuestionnaireList from "@/components/patient/QuestionnaireList";
 
 type WaterLog = Tables<"water_logs">;
 type Meal = Tables<"meals">;
@@ -19,6 +21,7 @@ const Dashboard = () => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [mealDialogOpen, setMealDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  const [linkDialogOpen, setLinkDialogOpen] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -56,7 +59,7 @@ const Dashboard = () => {
   const totalCarbs = meals.reduce((sum, m) => sum + Number(m.carbs), 0);
   const totalFat = meals.reduce((sum, m) => sum + Number(m.fat), 0);
 
-  const metaAgua = (profile?.meta_agua ?? 3) * 1000; // convert L to ml
+  const metaAgua = (profile?.meta_agua ?? 3) * 1000;
   const metaKcal = profile?.meta_kcal ?? 2000;
 
   const waterPercent = Math.min((totalWaterMl / metaAgua) * 100, 100);
@@ -87,14 +90,16 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b bg-card px-4 py-3">
         <div className="mx-auto flex max-w-2xl items-center justify-between">
           <div className="flex items-center gap-2">
             <Droplets className="h-6 w-6 text-primary" />
             <h1 className="text-lg font-semibold text-foreground">NutriTrack</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setLinkDialogOpen(true)} title="Vincular nutricionista">
+              <Link className="h-5 w-5" />
+            </Button>
             <Button variant="ghost" size="icon" onClick={() => setProfileDialogOpen(true)}>
               <User className="h-5 w-5" />
             </Button>
@@ -106,7 +111,6 @@ const Dashboard = () => {
       </header>
 
       <main className="mx-auto max-w-2xl space-y-4 p-4">
-        {/* Greeting */}
         <p className="text-muted-foreground">
           Olá, <span className="font-medium text-foreground">{profile?.full_name || "Paciente"}</span>
         </p>
@@ -201,19 +205,14 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Questionnaires */}
+        <QuestionnaireList />
       </main>
 
-      <MealDialog
-        open={mealDialogOpen}
-        onOpenChange={setMealDialogOpen}
-        onMealAdded={fetchTodayData}
-      />
-
-      <ProfileDialog
-        open={profileDialogOpen}
-        onOpenChange={setProfileDialogOpen}
-        onSaved={refreshProfile}
-      />
+      <MealDialog open={mealDialogOpen} onOpenChange={setMealDialogOpen} onMealAdded={fetchTodayData} />
+      <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} onSaved={refreshProfile} />
+      <LinkNutriDialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen} />
     </div>
   );
 };
