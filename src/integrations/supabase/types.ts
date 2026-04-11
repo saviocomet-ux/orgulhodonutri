@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      invite_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          is_used: boolean
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          is_used?: boolean
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       meals: {
         Row: {
           calories: number
@@ -50,6 +77,30 @@ export type Database = {
         }
         Relationships: []
       }
+      nutritionist_patients: {
+        Row: {
+          id: string
+          link_code: string
+          linked_at: string
+          nutritionist_id: string
+          patient_id: string
+        }
+        Insert: {
+          id?: string
+          link_code: string
+          linked_at?: string
+          nutritionist_id: string
+          patient_id: string
+        }
+        Update: {
+          id?: string
+          link_code?: string
+          linked_at?: string
+          nutritionist_id?: string
+          patient_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           altura: number
@@ -57,6 +108,7 @@ export type Database = {
           full_name: string | null
           id: string
           idade: number
+          link_code: string | null
           meta_agua: number
           meta_kcal: number
           percentual_gordura: number
@@ -70,6 +122,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           idade?: number
+          link_code?: string | null
           meta_agua?: number
           meta_kcal?: number
           percentual_gordura?: number
@@ -83,12 +136,164 @@ export type Database = {
           full_name?: string | null
           id?: string
           idade?: number
+          link_code?: string | null
           meta_agua?: number
           meta_kcal?: number
           percentual_gordura?: number
           peso_atual?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      questionnaire_assignments: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          nutritionist_id: string
+          patient_id: string
+          status: string
+          template_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          nutritionist_id: string
+          patient_id: string
+          status?: string
+          template_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          nutritionist_id?: string
+          patient_id?: string
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_assignments_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_questions: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          is_fixed: boolean
+          options: Json | null
+          question_text: string
+          question_type: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_fixed?: boolean
+          options?: Json | null
+          question_text: string
+          question_type?: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_fixed?: boolean
+          options?: Json | null
+          question_text?: string
+          question_type?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_questions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_responses: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          id: string
+          question_id: string
+          response_value: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          id?: string
+          question_id: string
+          response_value: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          id?: string
+          question_id?: string
+          response_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questionnaire_responses_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "questionnaire_responses_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questionnaire_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      questionnaire_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_system_default: boolean
+          nutritionist_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_default?: boolean
+          nutritionist_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_system_default?: boolean
+          nutritionist_id?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
