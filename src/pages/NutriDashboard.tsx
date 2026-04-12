@@ -4,10 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Droplets, LogOut, Users, Copy, ClipboardList, ChevronRight } from "lucide-react";
+import { Droplets, LogOut, Users, ClipboardList, ChevronRight, UserPlus } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import PatientDetail from "@/components/nutri/PatientDetail";
 import QuestionnaireManager from "@/components/nutri/QuestionnaireManager";
+import InvitePatientDialog from "@/components/nutri/InvitePatientDialog";
 
 type Profile = Tables<"profiles">;
 
@@ -21,34 +22,7 @@ const NutriDashboard = () => {
   const [patients, setPatients] = useState<PatientWithProfile[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [view, setView] = useState<"patients" | "questionnaires">("patients");
-  const [linkCode, setLinkCode] = useState<string | null>(profile?.link_code ?? null);
-
-  useEffect(() => {
-    if (profile?.link_code) setLinkCode(profile.link_code);
-  }, [profile]);
-
-  const generateLinkCode = async () => {
-    if (!user) return;
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const { error } = await supabase
-      .from("profiles")
-      .update({ link_code: code })
-      .eq("user_id", user.id);
-    if (error) {
-      toast.error("Erro ao gerar código");
-    } else {
-      setLinkCode(code);
-      refreshProfile();
-      toast.success("Código gerado!");
-    }
-  };
-
-  const copyCode = () => {
-    if (linkCode) {
-      navigator.clipboard.writeText(linkCode);
-      toast.success("Código copiado!");
-    }
-  };
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const fetchPatients = async () => {
     if (!user) return;
@@ -117,29 +91,11 @@ const NutriDashboard = () => {
           Olá, <span className="font-medium text-foreground">{profile?.full_name || "Nutricionista"}</span>
         </p>
 
-        {/* Link Code */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Código de Vínculo</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {linkCode ? (
-              <div className="flex items-center gap-3">
-                <span className="rounded-lg bg-muted px-4 py-2 text-xl font-mono font-bold tracking-widest text-foreground">
-                  {linkCode}
-                </span>
-                <Button variant="outline" size="icon" onClick={copyCode}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button onClick={generateLinkCode}>Gerar código</Button>
-            )}
-            <p className="mt-2 text-xs text-muted-foreground">
-              Compartilhe este código com seus pacientes para que eles se vinculem a você.
-            </p>
-          </CardContent>
-        </Card>
+        {/* Invite Patient */}
+        <Button onClick={() => setInviteOpen(true)} className="w-full">
+          <UserPlus className="h-4 w-4 mr-2" />
+          Convidar Paciente por Email
+        </Button>
 
         {/* Nav Tabs */}
         <div className="flex gap-2">
@@ -195,6 +151,8 @@ const NutriDashboard = () => {
           <QuestionnaireManager patients={patients} />
         )}
       </main>
+
+      <InvitePatientDialog open={inviteOpen} onOpenChange={setInviteOpen} onInvited={fetchPatients} />
     </div>
   );
 };

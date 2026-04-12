@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tables } from "@/integrations/supabase/types";
-import { Flame, Droplets, TrendingUp } from "lucide-react";
+import { Flame, Droplets } from "lucide-react";
+import EvolutionCharts from "@/components/nutri/EvolutionCharts";
 
 
 type Profile = Tables<"profiles">;
@@ -161,19 +162,7 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
         </TabsContent>
 
         <TabsContent value="evolution" className="mt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                Evolução (em breve)
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground text-center py-8">
-                Gráficos de evolução de peso e composição corporal serão adicionados aqui.
-              </p>
-            </CardContent>
-          </Card>
+          <EvolutionCharts patientId={patientId} />
         </TabsContent>
 
         <TabsContent value="questionnaires" className="mt-4">
