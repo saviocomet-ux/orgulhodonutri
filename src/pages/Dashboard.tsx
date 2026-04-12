@@ -212,6 +212,12 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Weight Log */}
+        <Button variant="outline" className="w-full" onClick={() => setWeightDialogOpen(true)}>
+          <Scale className="h-4 w-4 mr-2" />
+          Registrar Peso / Gordura
+        </Button>
+
         {/* Questionnaires */}
         <QuestionnaireList />
       </main>
@@ -219,6 +225,7 @@ const Dashboard = () => {
       <MealDialog open={mealDialogOpen} onOpenChange={setMealDialogOpen} onMealAdded={fetchTodayData} />
       <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} onSaved={refreshProfile} />
       <LinkNutriDialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen} />
+      <WeightLogDialog open={weightDialogOpen} onOpenChange={setWeightDialogOpen} onSaved={refreshProfile} />
     </div>
   );
 };
