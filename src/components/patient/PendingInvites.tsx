@@ -14,11 +14,10 @@ const PendingInvites = () => {
     if (!user?.email) return;
     const { data } = await supabase
       .from("patient_invites")
-      .select("*, profiles!patient_invites_nutritionist_id_fkey(full_name)")
+      .select("*")
       .eq("patient_email", user.email.toLowerCase())
       .eq("status", "pending");
 
-    // fallback: get nutri names manually
     if (data && data.length > 0) {
       const nutriIds = data.map((d: any) => d.nutritionist_id);
       const { data: profiles } = await supabase
