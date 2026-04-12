@@ -101,6 +101,36 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_invites: {
+        Row: {
+          created_at: string
+          id: string
+          nutritionist_id: string
+          patient_email: string
+          responded_at: string | null
+          status: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nutritionist_id: string
+          patient_email: string
+          responded_at?: string | null
+          status?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nutritionist_id?: string
+          patient_email?: string
+          responded_at?: string | null
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           altura: number
@@ -333,6 +363,30 @@ export type Database = {
           id?: string
           logged_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      weight_logs: {
+        Row: {
+          body_fat_percent: number | null
+          id: string
+          logged_at: string
+          user_id: string
+          weight_kg: number
+        }
+        Insert: {
+          body_fat_percent?: number | null
+          id?: string
+          logged_at?: string
+          user_id: string
+          weight_kg: number
+        }
+        Update: {
+          body_fat_percent?: number | null
+          id?: string
+          logged_at?: string
+          user_id?: string
+          weight_kg?: number
         }
         Relationships: []
       }
