@@ -5,13 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Droplets, Flame, LogOut, User, Plus, Camera, Trash2, Link } from "lucide-react";
+import { Droplets, Flame, LogOut, User, Plus, Camera, Trash2, Link, Scale } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import MealDialog from "@/components/MealDialog";
 import ProfileDialog from "@/components/ProfileDialog";
 import LinkNutriDialog from "@/components/patient/LinkNutriDialog";
 import QuestionnaireList from "@/components/patient/QuestionnaireList";
 import PendingInvites from "@/components/patient/PendingInvites";
+import WeightLogDialog from "@/components/patient/WeightLogDialog";
 
 type WaterLog = Tables<"water_logs">;
 type Meal = Tables<"meals">;
@@ -23,6 +24,7 @@ const Dashboard = () => {
   const [mealDialogOpen, setMealDialogOpen] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
   const [linkDialogOpen, setLinkDialogOpen] = useState(false);
+  const [weightDialogOpen, setWeightDialogOpen] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -210,6 +212,12 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Weight Log */}
+        <Button variant="outline" className="w-full" onClick={() => setWeightDialogOpen(true)}>
+          <Scale className="h-4 w-4 mr-2" />
+          Registrar Peso / Gordura
+        </Button>
+
         {/* Questionnaires */}
         <QuestionnaireList />
       </main>
@@ -217,6 +225,7 @@ const Dashboard = () => {
       <MealDialog open={mealDialogOpen} onOpenChange={setMealDialogOpen} onMealAdded={fetchTodayData} />
       <ProfileDialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen} onSaved={refreshProfile} />
       <LinkNutriDialog open={linkDialogOpen} onOpenChange={setLinkDialogOpen} />
+      <WeightLogDialog open={weightDialogOpen} onOpenChange={setWeightDialogOpen} onSaved={refreshProfile} />
     </div>
   );
 };
