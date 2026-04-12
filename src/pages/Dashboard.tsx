@@ -11,6 +11,7 @@ import MealDialog from "@/components/MealDialog";
 import ProfileDialog from "@/components/ProfileDialog";
 import LinkNutriDialog from "@/components/patient/LinkNutriDialog";
 import QuestionnaireList from "@/components/patient/QuestionnaireList";
+import PendingInvites from "@/components/patient/PendingInvites";
 
 type WaterLog = Tables<"water_logs">;
 type Meal = Tables<"meals">;
@@ -114,6 +115,9 @@ const Dashboard = () => {
         <p className="text-muted-foreground">
           Olá, <span className="font-medium text-foreground">{profile?.full_name || "Paciente"}</span>
         </p>
+
+        {/* Pending Invites */}
+        <PendingInvites />
 
         {/* Calories Card */}
         <Card>
