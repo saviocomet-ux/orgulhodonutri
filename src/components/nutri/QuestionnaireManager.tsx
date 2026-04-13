@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Send, Trash2 } from "lucide-react";
+import { Plus, Send, Trash2, Pencil, Save } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 type Profile = Tables<"profiles">;
@@ -35,14 +35,14 @@ interface Question {
   is_fixed: boolean;
 }
 
-const DEFAULT_QUESTIONS = [
-  { question_text: "Quantas refeições livres você fez essa semana?", question_type: "number", display_order: 1, is_fixed: true },
-  { question_text: "Frequência de consumo de vegetais (1-10)", question_type: "scale", display_order: 2, is_fixed: true },
-  { question_text: "Frequência de consumo de frutas (1-10)", question_type: "scale", display_order: 3, is_fixed: true },
-  { question_text: "Como está seu nível de energia? (1-10)", question_type: "scale", display_order: 4, is_fixed: true },
-  { question_text: "Como está a qualidade do seu sono? (1-10)", question_type: "scale", display_order: 5, is_fixed: true },
-  { question_text: "Praticou exercício físico essa semana? Quantas vezes?", question_type: "number", display_order: 6, is_fixed: true },
-  { question_text: "Como está seu humor geral? (1-10)", question_type: "scale", display_order: 7, is_fixed: true },
+const STARTER_QUESTIONS = [
+  { question_text: "Quantas refeições livres você fez essa semana?", question_type: "number", display_order: 1 },
+  { question_text: "Frequência de consumo de vegetais (1-10)", question_type: "scale", display_order: 2 },
+  { question_text: "Frequência de consumo de frutas (1-10)", question_type: "scale", display_order: 3 },
+  { question_text: "Como está seu nível de energia? (1-10)", question_type: "scale", display_order: 4 },
+  { question_text: "Como está a qualidade do seu sono? (1-10)", question_type: "scale", display_order: 5 },
+  { question_text: "Praticou exercício físico essa semana? Quantas vezes?", question_type: "number", display_order: 6 },
+  { question_text: "Como está seu humor geral? (1-10)", question_type: "scale", display_order: 7 },
 ];
 
 const QuestionnaireManager = ({ patients }: { patients: PatientWithProfile[] }) => {
@@ -50,9 +50,10 @@ const QuestionnaireManager = ({ patients }: { patients: PatientWithProfile[] }) 
   const [templates, setTemplates] = useState<Template[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [customQuestions, setCustomQuestions] = useState<{ text: string; type: string }[]>([]);
+  const [editQuestions, setEditQuestions] = useState<{ text: string; type: string; id?: string }[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [selectedPatient, setSelectedPatient] = useState<string>("");
 
@@ -82,46 +83,91 @@ const QuestionnaireManager = ({ patients }: { patients: PatientWithProfile[] }) 
     fetchTemplates();
   }, [user]);
 
-  const createTemplate = async () => {
+  const openCreate = () => {
+    setEditingTemplate(null);
+    setNewTitle("");
+    setNewDesc("");
+    setEditQuestions(STARTER_QUESTIONS.map((q) => ({ text: q.question_text, type: q.question_type })));
+    setCreateOpen(true);
+  };
+
+  const openEdit = (template: Template) => {
+    setEditingTemplate(template);
+    setNewTitle(template.title);
+    setNewDesc(template.description || "");
+    setEditQuestions(
+      template.questions.map((q) => ({ text: q.question_text, type: q.question_type, id: q.id }))
+    );
+    setCreateOpen(true);
+  };
+
+  const saveTemplate = async () => {
     if (!user || !newTitle.trim()) return;
 
-    const { data: template, error } = await supabase
-      .from("questionnaire_templates")
-      .insert({ nutritionist_id: user.id, title: newTitle, description: newDesc || null })
-      .select()
-      .single();
+    if (editingTemplate) {
+      // Update existing template
+      await supabase
+        .from("questionnaire_templates")
+        .update({ title: newTitle, description: newDesc || null })
+        .eq("id", editingTemplate.id);
 
-    if (error || !template) {
-      toast.error("Erro ao criar questionário");
-      return;
-    }
+      // Delete old questions and re-insert
+      await supabase.from("questionnaire_questions").delete().eq("template_id", editingTemplate.id);
 
-    // Insert default fixed questions + custom
-    const allQuestions = [
-      ...DEFAULT_QUESTIONS.map((q) => ({
-        template_id: template.id,
-        ...q,
-      })),
-      ...customQuestions.map((q, i) => ({
-        template_id: template.id,
-        question_text: q.text,
-        question_type: q.type,
-        display_order: DEFAULT_QUESTIONS.length + i + 1,
-        is_fixed: false,
-      })),
-    ];
+      const questions = editQuestions
+        .filter((q) => q.text.trim())
+        .map((q, i) => ({
+          template_id: editingTemplate.id,
+          question_text: q.text,
+          question_type: q.type,
+          display_order: i + 1,
+          is_fixed: false,
+        }));
 
-    const { error: qErr } = await supabase.from("questionnaire_questions").insert(allQuestions);
-    if (qErr) {
-      toast.error("Erro ao salvar perguntas");
+      if (questions.length > 0) {
+        await supabase.from("questionnaire_questions").insert(questions);
+      }
+
+      toast.success("Questionário atualizado!");
     } else {
+      // Create new
+      const { data: template, error } = await supabase
+        .from("questionnaire_templates")
+        .insert({ nutritionist_id: user.id, title: newTitle, description: newDesc || null })
+        .select()
+        .single();
+
+      if (error || !template) {
+        toast.error("Erro ao criar questionário");
+        return;
+      }
+
+      const questions = editQuestions
+        .filter((q) => q.text.trim())
+        .map((q, i) => ({
+          template_id: template.id,
+          question_text: q.text,
+          question_type: q.type,
+          display_order: i + 1,
+          is_fixed: false,
+        }));
+
+      if (questions.length > 0) {
+        const { error: qErr } = await supabase.from("questionnaire_questions").insert(questions);
+        if (qErr) {
+          toast.error("Erro ao salvar perguntas");
+          return;
+        }
+      }
       toast.success("Questionário criado!");
-      setCreateOpen(false);
-      setNewTitle("");
-      setNewDesc("");
-      setCustomQuestions([]);
-      fetchTemplates();
     }
+
+    setCreateOpen(false);
+    setEditingTemplate(null);
+    setNewTitle("");
+    setNewDesc("");
+    setEditQuestions([]);
+    fetchTemplates();
   };
 
   const sendQuestionnaire = async () => {
@@ -155,84 +201,10 @@ const QuestionnaireManager = ({ patients }: { patients: PatientWithProfile[] }) 
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="flex-1">
-              <Plus className="h-4 w-4 mr-1" />
-              Criar Questionário
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Novo Questionário</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input placeholder="Título" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
-              <Textarea placeholder="Descrição (opcional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
-
-              <div>
-                <p className="text-sm font-medium text-foreground mb-2">Perguntas fixas (inclusas automaticamente):</p>
-                <div className="space-y-1">
-                  {DEFAULT_QUESTIONS.map((q, i) => (
-                    <p key={i} className="text-xs text-muted-foreground">• {q.question_text}</p>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-foreground mb-2">Perguntas personalizadas:</p>
-                {customQuestions.map((q, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <Input
-                      value={q.text}
-                      onChange={(e) => {
-                        const copy = [...customQuestions];
-                        copy[i].text = e.target.value;
-                        setCustomQuestions(copy);
-                      }}
-                      placeholder="Texto da pergunta"
-                      className="flex-1"
-                    />
-                    <Select
-                      value={q.type}
-                      onValueChange={(v) => {
-                        const copy = [...customQuestions];
-                        copy[i].type = v;
-                        setCustomQuestions(copy);
-                      }}
-                    >
-                      <SelectTrigger className="w-28">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="scale">Escala</SelectItem>
-                        <SelectItem value="number">Número</SelectItem>
-                        <SelectItem value="text">Texto</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setCustomQuestions(customQuestions.filter((_, j) => j !== i))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCustomQuestions([...customQuestions, { text: "", type: "scale" }])}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Adicionar pergunta
-                </Button>
-              </div>
-
-              <Button onClick={createTemplate} className="w-full">Criar</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <Button size="sm" className="flex-1" onClick={openCreate}>
+          <Plus className="h-4 w-4 mr-1" />
+          Criar Questionário
+        </Button>
 
         <Dialog open={sendOpen} onOpenChange={setSendOpen}>
           <DialogTrigger asChild>
@@ -276,15 +248,88 @@ const QuestionnaireManager = ({ patients }: { patients: PatientWithProfile[] }) 
         </Dialog>
       </div>
 
+      {/* Create / Edit Dialog */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingTemplate ? "Editar Questionário" : "Novo Questionário"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input placeholder="Título" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
+            <Textarea placeholder="Descrição (opcional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} />
+
+            <div>
+              <p className="text-sm font-medium text-foreground mb-2">Perguntas:</p>
+              {editQuestions.map((q, i) => (
+                <div key={i} className="flex gap-2 mb-2">
+                  <Input
+                    value={q.text}
+                    onChange={(e) => {
+                      const copy = [...editQuestions];
+                      copy[i].text = e.target.value;
+                      setEditQuestions(copy);
+                    }}
+                    placeholder="Texto da pergunta"
+                    className="flex-1"
+                  />
+                  <Select
+                    value={q.type}
+                    onValueChange={(v) => {
+                      const copy = [...editQuestions];
+                      copy[i].type = v;
+                      setEditQuestions(copy);
+                    }}
+                  >
+                    <SelectTrigger className="w-28">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="scale">Escala</SelectItem>
+                      <SelectItem value="number">Número</SelectItem>
+                      <SelectItem value="text">Texto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setEditQuestions(editQuestions.filter((_, j) => j !== i))}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditQuestions([...editQuestions, { text: "", type: "scale" }])}
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Adicionar pergunta
+              </Button>
+            </div>
+
+            <Button onClick={saveTemplate} className="w-full">
+              <Save className="h-4 w-4 mr-1" />
+              {editingTemplate ? "Salvar Alterações" : "Criar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Templates list */}
       {templates.map((t) => (
         <Card key={t.id}>
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">{t.title}</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => deleteTemplate(t.id)}>
-                <Trash2 className="h-4 w-4 text-muted-foreground" />
-              </Button>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" onClick={() => openEdit(t)}>
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => deleteTemplate(t.id)}>
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
