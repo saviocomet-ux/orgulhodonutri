@@ -7,10 +7,39 @@ import { Tables } from "@/integrations/supabase/types";
 import { Flame, Droplets } from "lucide-react";
 import EvolutionCharts from "@/components/nutri/EvolutionCharts";
 
-
 type Profile = Tables<"profiles">;
 type WaterLog = Tables<"water_logs">;
 type Meal = Tables<"meals">;
+
+const getScoreColor = (value: number) => {
+  if (value <= 3) return "bg-red-500";
+  if (value <= 5) return "bg-orange-400";
+  if (value <= 7) return "bg-yellow-400";
+  if (value <= 8) return "bg-lime-400";
+  return "bg-green-500";
+};
+
+const getScoreTextColor = (value: number) => {
+  if (value <= 3) return "text-red-600";
+  if (value <= 5) return "text-orange-500";
+  if (value <= 7) return "text-yellow-600";
+  if (value <= 8) return "text-lime-600";
+  return "text-green-600";
+};
+
+const ScoreIndicator = ({ value }: { value: number }) => (
+  <div className="flex items-center gap-2">
+    <div className="flex gap-0.5">
+      {Array.from({ length: 10 }, (_, i) => (
+        <div
+          key={i}
+          className={`h-3 w-2 rounded-sm ${i < value ? getScoreColor(value) : "bg-muted"}`}
+        />
+      ))}
+    </div>
+    <span className={`text-sm font-bold ${getScoreTextColor(value)}`}>{value}/10</span>
+  </div>
+);
 
 const PatientDetail = ({ patientId }: { patientId: string }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -30,7 +59,7 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
         supabase.from("profiles").select("*").eq("user_id", patientId).single(),
         supabase.from("water_logs").select("*").eq("user_id", patientId).gte("logged_at", today).order("logged_at"),
         supabase.from("meals").select("*").eq("user_id", patientId).gte("logged_at", today).order("logged_at"),
-        supabase.from("questionnaire_responses").select("*, questionnaire_questions(question_text), questionnaire_assignments!inner(patient_id)")
+        supabase.from("questionnaire_responses").select("*, questionnaire_questions(question_text, question_type), questionnaire_assignments!inner(patient_id, created_at, questionnaire_templates(title))")
           .eq("questionnaire_assignments.patient_id", patientId)
           .order("created_at", { ascending: false })
           .limit(50),
@@ -51,6 +80,23 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
 
   const metaAgua = (profile?.meta_agua ?? 3) * 1000;
   const metaKcal = profile?.meta_kcal ?? 2000;
+
+  // Group responses by assignment
+  const groupedResponses = useMemo(() => {
+    const groups: Record<string, { title: string; date: string; items: any[] }> = {};
+    responses.forEach((r: any) => {
+      const assignmentId = r.assignment_id;
+      if (!groups[assignmentId]) {
+        groups[assignmentId] = {
+          title: r.questionnaire_assignments?.questionnaire_templates?.title || "Questionário",
+          date: r.questionnaire_assignments?.created_at || r.created_at,
+          items: [],
+        };
+      }
+      groups[assignmentId].items.push(r);
+    });
+    return Object.values(groups).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [responses]);
 
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-4">
@@ -89,7 +135,6 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
         </TabsList>
 
         <TabsContent value="today" className="space-y-4 mt-4">
-          {/* Today's calories */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -120,7 +165,6 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
             </CardContent>
           </Card>
 
-          {/* Today's water */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -137,7 +181,6 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
             </CardContent>
           </Card>
 
-          {/* Today's meals list */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Refeições</CardTitle>
@@ -165,31 +208,47 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
           <EvolutionCharts patientId={patientId} />
         </TabsContent>
 
-        <TabsContent value="questionnaires" className="mt-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Respostas dos Questionários</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {responses.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma resposta ainda.</p>
-              ) : (
-                <div className="space-y-2">
-                  {responses.map((r: any) => (
-                    <div key={r.id} className="rounded-lg border p-3">
-                      <p className="text-sm font-medium text-foreground">
-                        {r.questionnaire_questions?.question_text || "Pergunta"}
-                      </p>
-                      <p className="text-sm text-primary font-bold">{r.response_value}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(r.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <TabsContent value="questionnaires" className="mt-4 space-y-4">
+          {groupedResponses.length === 0 ? (
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-sm text-muted-foreground text-center">Nenhuma resposta ainda.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            groupedResponses.map((group, gi) => (
+              <Card key={gi}>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base">{group.title}</CardTitle>
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(group.date).toLocaleDateString("pt-BR")}
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {group.items.map((r: any) => {
+                      const isScale = r.questionnaire_questions?.question_type === "scale";
+                      const numValue = Number(r.response_value);
+                      return (
+                        <div key={r.id} className="rounded-lg border p-3">
+                          <p className="text-sm font-medium text-foreground mb-1">
+                            {r.questionnaire_questions?.question_text || "Pergunta"}
+                          </p>
+                          {isScale && !isNaN(numValue) ? (
+                            <ScoreIndicator value={Math.min(Math.max(numValue, 1), 10)} />
+                          ) : (
+                            <p className="text-sm text-primary font-bold">{r.response_value}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
       </Tabs>
     </main>
