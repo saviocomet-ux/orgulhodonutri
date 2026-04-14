@@ -41,6 +41,92 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_plan_items: {
+        Row: {
+          calories: number
+          carbs: number
+          created_at: string
+          display_order: number
+          fat: number
+          foods: string
+          id: string
+          meal_name: string
+          notes: string | null
+          plan_id: string
+          protein: number
+          scheduled_time: string
+        }
+        Insert: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          display_order?: number
+          fat?: number
+          foods?: string
+          id?: string
+          meal_name: string
+          notes?: string | null
+          plan_id: string
+          protein?: number
+          scheduled_time?: string
+        }
+        Update: {
+          calories?: number
+          carbs?: number
+          created_at?: string
+          display_order?: number
+          fat?: number
+          foods?: string
+          id?: string
+          meal_name?: string
+          notes?: string | null
+          plan_id?: string
+          protein?: number
+          scheduled_time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meal_plan_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "meal_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_plans: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          nutritionist_id: string
+          patient_id: string
+          pdf_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nutritionist_id: string
+          patient_id: string
+          pdf_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          nutritionist_id?: string
+          patient_id?: string
+          pdf_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       meals: {
         Row: {
           calories: number
