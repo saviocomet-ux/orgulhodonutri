@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
-import { Flame, Droplets } from "lucide-react";
+import { Flame, Droplets, Pencil } from "lucide-react";
 import EvolutionCharts from "@/components/nutri/EvolutionCharts";
+import EditPatientDialog from "@/components/nutri/EditPatientDialog";
+import MealPlanManager from "@/components/nutri/MealPlanManager";
 
 type Profile = Tables<"profiles">;
 type WaterLog = Tables<"water_logs">;
@@ -46,6 +49,7 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
   const [waterLogs, setWaterLogs] = useState<WaterLog[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [responses, setResponses] = useState<any[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -103,7 +107,12 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
       {/* Patient Info */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">{profile?.full_name || "Paciente"}</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">{profile?.full_name || "Paciente"}</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1" /> Editar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-3 text-center">
@@ -128,8 +137,9 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
       </Card>
 
       <Tabs defaultValue="today">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="today">Hoje</TabsTrigger>
+          <TabsTrigger value="mealplan">Plano</TabsTrigger>
           <TabsTrigger value="evolution">Evolução</TabsTrigger>
           <TabsTrigger value="questionnaires">Respostas</TabsTrigger>
         </TabsList>
@@ -250,7 +260,22 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
             ))
           )}
         </TabsContent>
+        <TabsContent value="mealplan" className="mt-4">
+          <MealPlanManager patientId={patientId} />
+        </TabsContent>
       </Tabs>
+
+      <EditPatientDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        profile={profile}
+        onSaved={() => {
+          // refetch profile
+          supabase.from("profiles").select("*").eq("user_id", patientId).single().then(({ data }) => {
+            if (data) setProfile(data);
+          });
+        }}
+      />
     </main>
   );
 };
