@@ -12,6 +12,7 @@ import ProfileDialog from "@/components/ProfileDialog";
 import LinkNutriDialog from "@/components/patient/LinkNutriDialog";
 import QuestionnaireList from "@/components/patient/QuestionnaireList";
 import PendingInvites from "@/components/patient/PendingInvites";
+import MealPlanView from "@/components/patient/MealPlanView";
 
 type WaterLog = Tables<"water_logs">;
 type Meal = Tables<"meals">;
@@ -209,6 +210,9 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Meal Plan */}
+        <MealPlanView />
 
         {/* Questionnaires */}
         <QuestionnaireList />
