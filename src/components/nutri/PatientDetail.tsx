@@ -46,6 +46,7 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
   const [waterLogs, setWaterLogs] = useState<WaterLog[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [responses, setResponses] = useState<any[]>([]);
+  const [editOpen, setEditOpen] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -103,7 +104,12 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
       {/* Patient Info */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">{profile?.full_name || "Paciente"}</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">{profile?.full_name || "Paciente"}</CardTitle>
+            <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="h-4 w-4 mr-1" /> Editar
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-3 text-center">
