@@ -137,8 +137,9 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
       </Card>
 
       <Tabs defaultValue="today">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="today">Hoje</TabsTrigger>
+          <TabsTrigger value="mealplan">Plano</TabsTrigger>
           <TabsTrigger value="evolution">Evolução</TabsTrigger>
           <TabsTrigger value="questionnaires">Respostas</TabsTrigger>
         </TabsList>
@@ -259,7 +260,22 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
             ))
           )}
         </TabsContent>
+        <TabsContent value="mealplan" className="mt-4">
+          <MealPlanManager patientId={patientId} />
+        </TabsContent>
       </Tabs>
+
+      <EditPatientDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        profile={profile}
+        onSaved={() => {
+          // refetch profile
+          supabase.from("profiles").select("*").eq("user_id", patientId).single().then(({ data }) => {
+            if (data) setProfile(data);
+          });
+        }}
+      />
     </main>
   );
 };
