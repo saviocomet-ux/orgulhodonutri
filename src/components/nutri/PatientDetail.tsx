@@ -3,9 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
-import { Flame, Droplets } from "lucide-react";
+import { Flame, Droplets, Pencil } from "lucide-react";
 import EvolutionCharts from "@/components/nutri/EvolutionCharts";
+import EditPatientDialog from "@/components/nutri/EditPatientDialog";
+import MealPlanManager from "@/components/nutri/MealPlanManager";
 
 type Profile = Tables<"profiles">;
 type WaterLog = Tables<"water_logs">;
