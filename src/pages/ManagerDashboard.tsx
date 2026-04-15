@@ -9,7 +9,7 @@ import { Shield, LogOut, KeyRound, Copy, Check, Users, Trash2 } from "lucide-rea
 
 interface InviteCode {
   id: string;
-  code: string;
+  email: string;
   is_used: boolean;
   created_at: string;
   used_at: string | null;
@@ -26,7 +26,7 @@ const ManagerDashboard = () => {
   const [codes, setCodes] = useState<InviteCode[]>([]);
   const [profiles, setProfiles] = useState<Record<string, { name: string, count: number }>>({});
   const [loading, setLoading] = useState(true);
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
 
   const fetchCodes = async () => {
     try {
@@ -70,30 +70,25 @@ const ManagerDashboard = () => {
     fetchCodes();
   }, []);
 
-  const generateCode = async () => {
+  const inviteNutritionist = async () => {
+    if (!inviteEmail || !inviteEmail.includes("@")) {
+      toast.error("Por favor, insira um e-mail válido.");
+      return;
+    }
     setLoading(true);
-    const newCode = Array.from({ length: 6 }, () => 
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(Math.floor(Math.random() * 36))
-    ).join("");
 
     try {
       const { error } = await supabase.from("invite_codes").insert({
-        code: newCode,
+        email: inviteEmail.trim().toLowerCase(),
       });
       if (error) throw error;
-      toast.success("Novo código gerado!");
+      toast.success("E-mail convidado com sucesso!");
+      setInviteEmail("");
       fetchCodes();
     } catch (err: any) {
-      toast.error("Erro ao gerar código: " + err.message);
+      toast.error("Erro ao convidar e-mail: " + err.message);
       setLoading(false);
     }
-  };
-
-  const copyToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    toast.success("Código copiado!");
-    setTimeout(() => setCopiedCode(null), 2000);
   };
 
   const deleteCode = async (id: string) => {
@@ -125,15 +120,24 @@ const ManagerDashboard = () => {
       </header>
 
       <main className="mx-auto max-w-4xl space-y-6 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Painel de Administração</h2>
             <p className="text-muted-foreground">Gerencie acessos de nutricionistas à plataforma.</p>
           </div>
-          <Button onClick={generateCode} disabled={loading}>
-            <KeyRound className="h-4 w-4 mr-2" />
-            Gerar Convite
-          </Button>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <input 
+              type="email" 
+              placeholder="E-mail do nutricionista" 
+              className="flex h-10 w-full md:w-64 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+            <Button onClick={inviteNutritionist} disabled={loading}>
+              <KeyRound className="h-4 w-4 mr-2" />
+              Convidar
+            </Button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -162,7 +166,7 @@ const ManagerDashboard = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Códigos de Convite (Nutricionistas)</CardTitle>
+            <CardTitle>Nutricionistas Convidados</CardTitle>
           </CardHeader>
           <CardContent>
             {loading && codes.length === 0 ? (
@@ -176,7 +180,7 @@ const ManagerDashboard = () => {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-lg font-bold tracking-widest text-primary">
-                          {code.code}
+                          {code.email}
                         </span>
                         <Badge variant={code.is_used ? "secondary" : "default"} className={code.is_used ? "bg-muted text-muted-foreground" : "bg-green-500 hover:bg-green-600"}>
                           {code.is_used ? "Utilizado" : "Disponível"}
@@ -198,15 +202,6 @@ const ManagerDashboard = () => {
                     </div>
                     {!code.is_used && (
                       <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={() => copyToClipboard(code.code)}
-                          className="flex-1 sm:flex-none"
-                        >
-                          {copiedCode === code.code ? <Check className="h-4 w-4 mr-2 text-green-500" /> : <Copy className="h-4 w-4 mr-2" />}
-                          Copiar
-                        </Button>
                         <Button
                           variant="destructive"
                           size="sm"

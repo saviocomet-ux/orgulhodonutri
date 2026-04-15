@@ -12,7 +12,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [inviteCode, setInviteCode] = useState("");
   const [isNutri, setIsNutri] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -28,22 +27,6 @@ const Auth = () => {
         toast.success("Login realizado com sucesso!");
       }
     } else {
-      // If nutri, validate invite code first
-      if (isNutri) {
-        const { data: codeData } = await supabase
-          .from("invite_codes")
-          .select("*")
-          .eq("code", inviteCode.trim().toUpperCase())
-          .eq("is_used", false)
-          .single();
-
-        if (!codeData) {
-          toast.error("Código de convite inválido ou já utilizado.");
-          setLoading(false);
-          return;
-        }
-      }
-
       const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
@@ -57,13 +40,15 @@ const Auth = () => {
         toast.error(error.message);
       } else if (signUpData.user && isNutri) {
         // Call edge function to upgrade role with service key
-        await supabase.functions.invoke("upgrade-to-nutri", {
-          body: { invite_code: inviteCode.trim().toUpperCase(), user_id: signUpData.user.id },
+        const res = await supabase.functions.invoke("upgrade-to-nutri", {
+          body: { email: email.trim().toLowerCase(), user_id: signUpData.user.id },
         });
 
-        // The trigger creates 'patient' role by default, we need an edge function to upgrade
-        // For now we'll handle this via a separate mechanism after email confirmation
-        toast.success("Conta de nutricionista criada! Verifique seu email.");
+        if (res.error || (res.data && res.data.error)) {
+          toast.error(res.data?.error || "E-mail não possui um convite de nutricionista válido.");
+        } else {
+          toast.success("Conta de nutricionista criada! Verifique seu email.");
+        }
       } else {
         toast.success("Conta criada! Verifique seu email para confirmar.");
       }
@@ -101,14 +86,6 @@ const Auth = () => {
                   onChange={(e) => setFullName(e.target.value)}
                   required
                 />
-                {isNutri && (
-                  <Input
-                    placeholder="Código de convite"
-                    value={inviteCode}
-                    onChange={(e) => setInviteCode(e.target.value)}
-                    required
-                  />
-                )}
               </>
             )}
             <Input

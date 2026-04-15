@@ -16,7 +16,7 @@ export type Database = {
     Tables: {
       invite_codes: {
         Row: {
-          code: string
+          email: string
           created_at: string
           id: string
           is_used: boolean
@@ -24,7 +24,7 @@ export type Database = {
           used_by: string | null
         }
         Insert: {
-          code: string
+          email: string
           created_at?: string
           id?: string
           is_used?: boolean
@@ -32,7 +32,7 @@ export type Database = {
           used_by?: string | null
         }
         Update: {
-          code?: string
+          email?: string
           created_at?: string
           id?: string
           is_used?: boolean
