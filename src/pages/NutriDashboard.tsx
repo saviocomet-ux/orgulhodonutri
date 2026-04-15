@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Droplets, LogOut, Users, ClipboardList, ChevronRight, UserPlus, TrendingUp, Flame, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Droplets, LogOut, Users, ClipboardList, ChevronRight, UserPlus, TrendingUp, Flame, CheckCircle2, AlertTriangle, Search } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import PatientDetail from "@/components/nutri/PatientDetail";
 import QuestionnaireManager from "@/components/nutri/QuestionnaireManager";
@@ -47,6 +49,7 @@ const NutriDashboard = () => {
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "patients" | "questionnaires">("overview");
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -149,48 +152,33 @@ const NutriDashboard = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl space-y-4 p-4">
-        <p className="text-muted-foreground">
-          Olá, <span className="font-medium text-foreground">{profile?.full_name || "Nutricionista"}</span>
-        </p>
+      <main className="mx-auto max-w-3xl space-y-6 p-4">
+        <header>
+          <p className="text-muted-foreground">
+            Olá, <span className="font-medium text-foreground">{profile?.full_name || "Nutricionista"}</span>
+          </p>
+          <h2 className="text-2xl font-bold tracking-tight">Visão Geral</h2>
+        </header>
 
-        <Button onClick={() => setInviteOpen(true)} className="w-full">
-          <UserPlus className="h-4 w-4 mr-2" />
-          Convidar Paciente por Email
-        </Button>
+        <Tabs value={view} onValueChange={(v) => setView(v as any)} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Painel</span>
+            </TabsTrigger>
+            <TabsTrigger value="patients">
+              <Users className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Pacientes</span>
+            </TabsTrigger>
+            <TabsTrigger value="questionnaires">
+              <ClipboardList className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Questionários</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Nav Tabs */}
-        <div className="flex gap-2">
-          <Button
-            variant={view === "overview" ? "default" : "outline"}
-            onClick={() => setView("overview")}
-            className="flex-1"
-          >
-            <TrendingUp className="h-4 w-4 mr-2" />
-            Painel
-          </Button>
-          <Button
-            variant={view === "patients" ? "default" : "outline"}
-            onClick={() => setView("patients")}
-            className="flex-1"
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Pacientes
-          </Button>
-          <Button
-            variant={view === "questionnaires" ? "default" : "outline"}
-            onClick={() => setView("questionnaires")}
-            className="flex-1"
-          >
-            <ClipboardList className="h-4 w-4 mr-2" />
-            Questionários
-          </Button>
-        </div>
-
-        {view === "overview" && (
-          <div className="space-y-4">
+          <TabsContent value="overview" className="space-y-4">
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <Card>
                 <CardContent className="pt-4 pb-3 text-center">
                   <Users className="h-6 w-6 mx-auto mb-1 text-primary" />
@@ -242,24 +230,24 @@ const NutriDashboard = () => {
                           <button
                             key={p.patient_id}
                             onClick={() => setSelectedPatient(p.patient_id)}
-                            className="w-full flex items-center justify-between rounded-lg border p-3 hover:bg-muted transition-colors"
+                            className="w-full flex items-center justify-between rounded-lg border p-3 hover:bg-muted transition-colors group"
                           >
                             <div className="text-left">
-                              <p className="font-medium text-sm text-foreground">
+                              <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
                                 {p.profile?.full_name || "Paciente"}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
-                                <span className="text-xs text-muted-foreground">
-                                  <Flame className="inline h-3 w-3" /> {p.adherence?.mealsToday ?? 0} ref
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Flame className="h-3 w-3" /> {p.adherence?.mealsToday ?? 0} ref
                                 </span>
-                                <span className="text-xs text-muted-foreground">
-                                  <Droplets className="inline h-3 w-3" /> {p.adherence?.waterPercent ?? 0}%
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Droplets className="h-3 w-3" /> {p.adherence?.waterPercent ?? 0}%
                                 </span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               <Badge className={level.className}>{level.label}</Badge>
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                             </div>
                           </button>
                         );
@@ -268,50 +256,68 @@ const NutriDashboard = () => {
                 </CardContent>
               </Card>
             )}
-          </div>
-        )}
+          </TabsContent>
 
-        {view === "patients" && (
-          <Card>
-            <CardContent className="pt-4">
-              {patients.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-6">
-                  Nenhum paciente vinculado ainda.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {patients.map((p) => {
-                    const level = getAdherenceLevel(p.adherence);
-                    return (
-                      <button
-                        key={p.patient_id}
-                        onClick={() => setSelectedPatient(p.patient_id)}
-                        className="w-full flex items-center justify-between rounded-lg border p-3 hover:bg-muted transition-colors"
-                      >
-                        <div className="text-left">
-                          <p className="font-medium text-sm text-foreground">
-                            {p.profile?.full_name || "Paciente"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {p.profile?.peso_atual}kg · {p.profile?.altura}m · {p.profile?.idade} anos
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Badge className={level.className}>{level.label}</Badge>
-                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+          <TabsContent value="patients" className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-2 justify-between">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar paciente..."
+                  className="pl-8"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <Button onClick={() => setInviteOpen(true)} className="sm:w-auto w-full">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Convidar Paciente
+              </Button>
+            </div>
+            
+            <Card>
+              <CardContent className="pt-4">
+                {patients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Nenhum paciente vinculado ainda.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {patients
+                      .filter(p => (p.profile?.full_name || "Paciente").toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map((p) => {
+                      const level = getAdherenceLevel(p.adherence);
+                      return (
+                        <button
+                          key={p.patient_id}
+                          onClick={() => setSelectedPatient(p.patient_id)}
+                          className="w-full flex items-center justify-between rounded-lg border p-3 hover:bg-muted transition-colors group"
+                        >
+                          <div className="text-left">
+                            <p className="font-medium text-sm text-foreground group-hover:text-primary transition-colors">
+                              {p.profile?.full_name || "Paciente"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {p.profile?.peso_atual}kg · {p.profile?.altura}m · {p.profile?.idade} anos
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge className={level.className}>{level.label}</Badge>
+                            <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-        {view === "questionnaires" && (
-          <QuestionnaireManager patients={patients} />
-        )}
+          <TabsContent value="questionnaires" className="px-0 py-2 border-none">
+            <QuestionnaireManager patients={patients} />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <InvitePatientDialog open={inviteOpen} onOpenChange={setInviteOpen} onInvited={fetchPatients} />

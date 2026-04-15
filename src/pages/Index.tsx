@@ -3,8 +3,10 @@ import Auth from "./Auth";
 import Dashboard from "./Dashboard";
 import NutriDashboard from "./NutriDashboard";
 
+import ManagerDashboard from "./ManagerDashboard";
+
 const Index = () => {
-  const { session, role, loading } = useAuth();
+  const { session, role, isManager, loading } = useAuth();
 
   if (loading) {
     return (
@@ -15,6 +17,8 @@ const Index = () => {
   }
 
   if (!session) return <Auth />;
+
+  if (isManager) return <ManagerDashboard />;
 
   return role === "admin" ? <NutriDashboard /> : <Dashboard />;
 };

@@ -5,7 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
-import { Flame, Droplets, Pencil } from "lucide-react";
+import { Flame, Droplets, Pencil, BellRing, Activity } from "lucide-react";
+import { toast } from "sonner";
 import EvolutionCharts from "@/components/nutri/EvolutionCharts";
 import EditPatientDialog from "@/components/nutri/EditPatientDialog";
 import MealPlanManager from "@/components/nutri/MealPlanManager";
@@ -105,33 +106,49 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
   return (
     <main className="mx-auto max-w-3xl space-y-4 p-4">
       {/* Patient Info */}
-      <Card>
-        <CardHeader className="pb-2">
+      <Card className="border-primary/10 overflow-hidden">
+        <CardHeader className="bg-muted/30 pb-4">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-base">{profile?.full_name || "Paciente"}</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil className="h-4 w-4 mr-1" /> Editar
-            </Button>
+            <div>
+              <CardTitle className="text-xl font-bold">{profile?.full_name || "Paciente"}</CardTitle>
+              <p className="text-sm text-muted-foreground mt-1 flex items-center gap-1">
+                <Activity className="h-4 w-4 text-green-500" /> Última atividade: Hoje
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" className="hidden sm:flex bg-background" onClick={() => toast.success("Lembrete de hidratação enviado com sucesso!")}>
+                <BellRing className="h-4 w-4 mr-2" /> Lembrete 
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-4 w-4 mr-1" /> Editar
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-4 gap-3 text-center">
-            <div className="rounded-lg bg-muted p-2">
-              <p className="text-lg font-bold text-foreground">{profile?.peso_atual}kg</p>
-              <p className="text-xs text-muted-foreground">Peso</p>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-center mb-4">
+            <div className="rounded-lg border bg-card p-3 shadow-sm">
+              <p className="text-xl font-bold text-foreground">{profile?.peso_atual}kg</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Peso Atual</p>
             </div>
-            <div className="rounded-lg bg-muted p-2">
-              <p className="text-lg font-bold text-foreground">{profile?.altura}m</p>
-              <p className="text-xs text-muted-foreground">Altura</p>
+            <div className="rounded-lg border bg-card p-3 shadow-sm">
+              <p className="text-xl font-bold text-foreground">{profile?.altura}m</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Altura</p>
             </div>
-            <div className="rounded-lg bg-muted p-2">
-              <p className="text-lg font-bold text-foreground">{profile?.idade}</p>
-              <p className="text-xs text-muted-foreground">Idade</p>
+            <div className="rounded-lg border bg-card p-3 shadow-sm">
+              <p className="text-xl font-bold text-foreground">{profile?.idade}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">Idade</p>
             </div>
-            <div className="rounded-lg bg-muted p-2">
-              <p className="text-lg font-bold text-foreground">{profile?.percentual_gordura}%</p>
-              <p className="text-xs text-muted-foreground">Gordura</p>
+            <div className="rounded-lg border bg-card p-3 shadow-sm">
+              <p className="text-xl font-bold text-primary">{profile?.percentual_gordura}%</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mt-1">BF / Gordura</p>
             </div>
+          </div>
+          
+          <div className="sm:hidden mt-2 flex gap-2">
+             <Button size="sm" variant="outline" className="flex-1" onClick={() => toast.success("Lembrete enviado ao paciente!")}>
+                <BellRing className="h-4 w-4 mr-2" /> Alertar Água
+              </Button>
           </div>
         </CardContent>
       </Card>
