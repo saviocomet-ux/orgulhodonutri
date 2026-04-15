@@ -42,9 +42,20 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
     });
 
     if (error) {
-      toast.error("Erro ao enviar convite.");
+      toast.error("Erro ao registrar convite no sistema.");
     } else {
-      toast.success("Convite enviado! O paciente verá ao fazer login.");
+      // Disparar e-mail real via Edge Function
+      const { profile } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).single();
+      
+      await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email: email.trim().toLowerCase(), 
+          type: "patient",
+          sender_name: profile?.full_name || "Seu Nutricionista"
+        },
+      });
+
+      toast.success("Convite enviado com sucesso para o e-mail do paciente!");
       setEmail("");
       onOpenChange(false);
       onInvited?.();

@@ -82,11 +82,20 @@ const ManagerDashboard = () => {
         email: inviteEmail.trim().toLowerCase(),
       });
       if (error) throw error;
-      toast.success("E-mail convidado com sucesso!");
+
+      // Disparar e-mail real via Edge Function
+      await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email: inviteEmail.trim().toLowerCase(), 
+          type: "nutri" 
+        },
+      });
+
+      toast.success("Convite enviado com sucesso para o nutricionista!");
       setInviteEmail("");
       fetchCodes();
     } catch (err: any) {
-      toast.error("Erro ao convidar e-mail: " + err.message);
+      toast.error("Erro ao convidar nutricionista: " + err.message);
       setLoading(false);
     }
   };
