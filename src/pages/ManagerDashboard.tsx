@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Shield, LogOut, KeyRound, Copy, Check, Users, Trash2 } from "lucide-react";
+import { Shield, LogOut, KeyRound, Copy, Check, Users, Trash2, Mail } from "lucide-react";
 
 interface InviteCode {
   id: string;
@@ -114,6 +114,25 @@ const ManagerDashboard = () => {
     }
   };
 
+  const resendInvite = async (email: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email: email.trim().toLowerCase(), 
+          type: "nutri" 
+        },
+      });
+
+      if (error) throw error;
+      toast.success("Convite reenviado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao reenviar convite: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card px-4 py-3">
@@ -212,9 +231,20 @@ const ManagerDashboard = () => {
                     {!code.is_used && (
                       <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => resendInvite(code.email)}
+                          disabled={loading}
+                          className="flex-1 sm:flex-none"
+                        >
+                          <Mail className="h-4 w-4 mr-2" />
+                          Reenviar
+                        </Button>
+                        <Button
                           variant="destructive"
                           size="sm"
                           onClick={() => deleteCode(code.id)}
+                          disabled={loading}
                           className="flex-1 sm:flex-none"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />

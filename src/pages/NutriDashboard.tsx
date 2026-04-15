@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Droplets, LogOut, Users, ClipboardList, ChevronRight, UserPlus, TrendingUp, Flame, CheckCircle2, AlertTriangle, Search } from "lucide-react";
+import { Droplets, LogOut, Users, ClipboardList, ChevronRight, UserPlus, TrendingUp, Flame, CheckCircle2, AlertTriangle, Search, Trash2, Mail } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import PatientDetail from "@/components/nutri/PatientDetail";
 import QuestionnaireManager from "@/components/nutri/QuestionnaireManager";
@@ -28,6 +28,12 @@ interface PatientWithProfile {
   adherence?: PatientAdherence;
 }
 
+interface PendingInvite {
+  id: string;
+  patient_email: string;
+  created_at: string;
+}
+
 const getAdherenceLevel = (adherence?: PatientAdherence) => {
   if (!adherence) return { label: "Sem dados", color: "secondary" as const };
   
@@ -46,10 +52,12 @@ const getAdherenceLevel = (adherence?: PatientAdherence) => {
 const NutriDashboard = () => {
   const { user, profile, signOut, refreshProfile } = useAuth();
   const [patients, setPatients] = useState<PatientWithProfile[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null);
   const [view, setView] = useState<"overview" | "patients" | "questionnaires">("overview");
   const [inviteOpen, setInviteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loadingInvites, setLoadingInvites] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -102,6 +110,54 @@ const NutriDashboard = () => {
         };
       })
     );
+
+    // Fetch pending invites
+    const { data: invites } = await supabase
+      .from("patient_invites")
+      .select("id, patient_email, created_at")
+      .eq("nutritionist_id", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    
+    setPendingInvites(invites || []);
+  };
+
+  const resendPatientInvite = async (invite: PendingInvite) => {
+    if (!user) return;
+    setLoadingInvites(true);
+    try {
+      await supabase.functions.invoke("send-invite-email", {
+        body: { 
+          email: invite.patient_email, 
+          type: "patient",
+          sender_name: profile?.full_name || "Seu Nutricionista"
+        },
+      });
+      toast.success("Convite reenviado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao reenviar convite: " + err.message);
+    } finally {
+      setLoadingInvites(false);
+    }
+  };
+
+  const deletePatientInvite = async (id: string) => {
+    if (!confirm("Tem certeza que deseja cancelar este convite?")) return;
+    setLoadingInvites(true);
+    try {
+      const { error } = await supabase
+        .from("patient_invites")
+        .delete()
+        .eq("id", id);
+      
+      if (error) throw error;
+      toast.success("Convite cancelado!");
+      fetchPatients();
+    } catch (err: any) {
+      toast.error("Erro ao cancelar convite: " + err.message);
+    } finally {
+      setLoadingInvites(false);
+    }
   };
 
   useEffect(() => {
@@ -312,6 +368,55 @@ const NutriDashboard = () => {
                 )}
               </CardContent>
             </Card>
+
+            {pendingInvites.length > 0 && (
+              <div className="space-y-3 mt-8">
+                <h3 className="text-lg font-semibold flex items-center gap-2 px-1">
+                  <Mail className="h-5 w-5 text-primary" />
+                  Convites Pendentes
+                </h3>
+                <div className="grid gap-3">
+                  {pendingInvites
+                    .filter(i => i.patient_email.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((invite) => (
+                    <Card key={invite.id} className="overflow-hidden border-dashed">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <p className="font-medium text-foreground">{invite.patient_email}</p>
+                            <p className="text-xs text-muted-foreground">
+                              Enviado em: {new Date(invite.created_at).toLocaleDateString("pt-BR")}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 w-full sm:w-auto">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="flex-1 sm:flex-none h-8 text-xs"
+                              onClick={() => resendPatientInvite(invite)}
+                              disabled={loadingInvites}
+                            >
+                              <Mail className="h-3.5 w-3.5 mr-1.5" />
+                              Reenviar
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="flex-1 sm:flex-none h-8 text-xs text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => deletePatientInvite(invite.id)}
+                              disabled={loadingInvites}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                              Cancelar
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="questionnaires" className="px-0 py-2 border-none">
