@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Camera, Upload, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { OpenFoodFactsSearch } from "./food/OpenFoodFactsSearch";
 
 interface MealDialogProps {
   open: boolean;
@@ -117,51 +119,71 @@ const MealDialog = ({ open, onOpenChange, onMealAdded }: MealDialogProps) => {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Image Upload */}
-          {!imagePreview ? (
-            <div
-              className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Camera className="h-10 w-10 text-muted-foreground mb-2" />
-              <p className="text-sm text-muted-foreground">Tire uma foto ou selecione uma imagem</p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <img
-                src={imagePreview}
-                alt="Refeição"
-                className="w-full h-48 object-cover rounded-lg"
-              />
-              {!analyzed && (
-                <Button
-                  className="w-full"
-                  onClick={analyzeImage}
-                  disabled={analyzing}
+          <Tabs defaultValue="ai" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="ai">Análise com IA</TabsTrigger>
+              <TabsTrigger value="search">Banco de Alimentos</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="ai" className="space-y-4 mt-4">
+              {/* Image Upload */}
+              {!imagePreview ? (
+                <div
+                  className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-8 cursor-pointer hover:border-primary/50 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  {analyzing ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analisando com IA...
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-4 w-4 mr-2" />
-                      Analisar com IA
-                    </>
+                  <Camera className="h-10 w-10 text-muted-foreground mb-2" />
+                  <p className="text-sm text-muted-foreground">Tire uma foto ou selecione uma imagem</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <img
+                    src={imagePreview}
+                    alt="Refeição"
+                    className="w-full h-48 object-cover rounded-lg"
+                  />
+                  {!analyzed && (
+                    <Button
+                      className="w-full"
+                      onClick={analyzeImage}
+                      disabled={analyzing}
+                    >
+                      {analyzing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Analisando com IA...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Analisar com IA
+                        </>
+                      )}
+                    </Button>
                   )}
-                </Button>
+                </div>
               )}
-            </div>
-          )}
+            </TabsContent>
+            
+            <TabsContent value="search" className="mt-4">
+              <OpenFoodFactsSearch onSelect={(item) => {
+                setMealName(item.name);
+                setCalories(String(item.calories));
+                setProtein(String(item.protein));
+                setCarbs(String(item.carbs));
+                setFat(String(item.fat));
+                toast.success("Alimento selecionado!");
+              }} />
+            </TabsContent>
+          </Tabs>
 
           {/* Manual / Analyzed fields */}
           <div>

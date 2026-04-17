@@ -16,30 +16,8 @@ serve(async (req) => {
 
     const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Valida se o email foi convidado
-    const { data: inviteData, error: inviteError } = await supabaseAdmin
-      .from("invite_codes")
-      .select("*")
-      .eq("email", email)
-      .eq("is_used", false)
-      .single();
-
-    if (inviteError || !inviteData) {
-      return new Response(JSON.stringify({ error: "Email não tem um convite válido ou convite já utilizado." }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Atualiza o role para admin (nutricionista)
-    await supabaseAdmin.from("user_roles").update({ role: "admin" }).eq("user_id", user_id);
-
-    // Marca o convite como usado
-    await supabaseAdmin.from("invite_codes").update({
-      is_used: true,
-      used_by: user_id,
-      used_at: new Date().toISOString()
-    }).eq("id", inviteData.id);
+    await supabaseAdmin.from("user_roles").upsert({ user_id, role: "admin" }, { onConflict: "user_id" });
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -5,7 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Tables } from "@/integrations/supabase/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Profile = Tables<"profiles">;
 
@@ -25,6 +31,9 @@ const EditPatientDialog = ({ open, onOpenChange, profile, onSaved }: Props) => {
     percentual_gordura: 20,
     meta_kcal: 2000,
     meta_agua: 3,
+    birth_date: "",
+    sex: "M",
+    activity_level: "sedentary",
   });
   const [saving, setSaving] = useState(false);
 
@@ -38,6 +47,9 @@ const EditPatientDialog = ({ open, onOpenChange, profile, onSaved }: Props) => {
         percentual_gordura: Number(profile.percentual_gordura),
         meta_kcal: profile.meta_kcal,
         meta_agua: Number(profile.meta_agua),
+        birth_date: (profile as any).birth_date || "",
+        sex: (profile as any).sex || "M",
+        activity_level: (profile as any).activity_level || "sedentary",
       });
     }
   }, [profile]);
@@ -76,22 +88,114 @@ const EditPatientDialog = ({ open, onOpenChange, profile, onSaved }: Props) => {
         <DialogHeader>
           <DialogTitle>Avaliação Física</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          {fields.map((f) => (
-            <div key={f.key} className="space-y-1">
-              <Label className="text-sm">{f.label}</Label>
+        <div className="space-y-3 max-h-[70vh] overflow-y-auto px-1">
+          <div className="space-y-1">
+            <Label className="text-sm">Nome Completo</Label>
+            <Input
+              value={form.full_name}
+              onChange={(e) => setForm({ ...form, full_name: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Data de Nascimento</Label>
               <Input
-                type={f.type}
-                step={"step" in f ? f.step : undefined}
-                value={form[f.key as keyof typeof form]}
-                onChange={(e) =>
-                  setForm({ ...form, [f.key]: f.type === "number" ? Number(e.target.value) : e.target.value })
-                }
+                type="date"
+                value={form.birth_date}
+                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
               />
             </div>
-          ))}
-          <Button onClick={handleSave} disabled={saving} className="w-full">
-            {saving ? "Salvando..." : "Salvar"}
+            <div className="space-y-1">
+              <Label className="text-sm">Sexo</Label>
+              <Select 
+                value={form.sex} 
+                onValueChange={(v) => setForm({ ...form, sex: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="M">Masculino</SelectItem>
+                  <SelectItem value="F">Feminino</SelectItem>
+                  <SelectItem value="Other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm">Peso (kg)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={form.peso_atual}
+                onChange={(e) => setForm({ ...form, peso_atual: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Altura (m)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={form.altura}
+                onChange={(e) => setForm({ ...form, altura: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-sm">Nível de Atividade</Label>
+            <Select 
+              value={form.activity_level} 
+              onValueChange={(v) => setForm({ ...form, activity_level: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sedentary">Sedentário</SelectItem>
+                <SelectItem value="lightly_active">Levemente Ativo</SelectItem>
+                <SelectItem value="moderately_active">Moderadamente Ativo</SelectItem>
+                <SelectItem value="very_active">Muito Ativo</SelectItem>
+                <SelectItem value="extra_active">Extremamente Ativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label className="text-sm">% Gordura</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={form.percentual_gordura}
+                onChange={(e) => setForm({ ...form, percentual_gordura: Number(e.target.value) })}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-sm">Meta Água (L)</Label>
+              <Input
+                type="number"
+                step="0.1"
+                value={form.meta_agua}
+                onChange={(e) => setForm({ ...form, meta_agua: Number(e.target.value) })}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-sm">Meta Calorias (kcal)</Label>
+            <Input
+              type="number"
+              value={form.meta_kcal}
+              onChange={(e) => setForm({ ...form, meta_kcal: Number(e.target.value) })}
+            />
+          </div>
+
+          <Button onClick={handleSave} disabled={saving} className="w-full mt-2">
+            {saving ? "Salvando..." : "Salvar Avaliação"}
           </Button>
         </div>
       </DialogContent>

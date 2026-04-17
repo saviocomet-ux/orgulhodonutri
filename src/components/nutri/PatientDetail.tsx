@@ -10,6 +10,9 @@ import { toast } from "sonner";
 import EvolutionCharts from "@/components/nutri/EvolutionCharts";
 import EditPatientDialog from "@/components/nutri/EditPatientDialog";
 import MealPlanManager from "@/components/nutri/MealPlanManager";
+import { generatePatientReport } from "@/utils/RelatorioClinico";
+import { FileDown, Loader2 } from "lucide-react";
+import { differenceInYears } from "date-fns";
 
 type Profile = Tables<"profiles">;
 type WaterLog = Tables<"water_logs">;
@@ -50,7 +53,9 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
   const [waterLogs, setWaterLogs] = useState<WaterLog[]>([]);
   const [meals, setMeals] = useState<Meal[]>([]);
   const [responses, setResponses] = useState<any[]>([]);
+  const [weightHistory, setWeightHistory] = useState<any[]>([]);
   const [editOpen, setEditOpen] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const today = useMemo(() => {
     const d = new Date();
@@ -60,7 +65,7 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
 
   useEffect(() => {
     const fetch = async () => {
-      const [profileRes, waterRes, mealRes, respRes] = await Promise.all([
+      const [profileRes, waterRes, mealRes, respRes, weightRes] = await Promise.all([
         supabase.from("profiles").select("*").eq("user_id", patientId).single(),
         supabase.from("water_logs").select("*").eq("user_id", patientId).gte("logged_at", today).order("logged_at"),
         supabase.from("meals").select("*").eq("user_id", patientId).gte("logged_at", today).order("logged_at"),
@@ -68,14 +73,49 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
           .eq("questionnaire_assignments.patient_id", patientId)
           .order("created_at", { ascending: false })
           .limit(50),
+        supabase.from("weight_logs").select("*").eq("user_id", patientId).order("created_at", { ascending: false }),
       ]);
       if (profileRes.data) setProfile(profileRes.data);
       if (waterRes.data) setWaterLogs(waterRes.data);
       if (mealRes.data) setMeals(mealRes.data);
       if (respRes.data) setResponses(respRes.data);
+      if (weightRes.data) setWeightHistory(weightRes.data);
     };
     fetch();
   }, [patientId, today]);
+
+  const handleExportPDF = async () => {
+    if (!profile) return;
+    setIsExporting(true);
+    try {
+      const patientAge = profile.birth_date ? differenceInYears(new Date(), new Date(profile.birth_date)) : profile.idade;
+      
+      const imc = profile.peso_atual && profile.altura 
+        ? profile.peso_atual / (profile.altura * profile.altura) 
+        : undefined;
+
+      await generatePatientReport({
+        patientName: profile.full_name || "Paciente",
+        biometrics: {
+          age: patientAge || undefined,
+          sex: profile.sex || undefined,
+          weight: profile.peso_atual || undefined,
+          height: (profile.altura || 0) * 100, // cm
+          imc,
+          activityLevel: profile.activity_level || undefined,
+        },
+        weightHistory,
+        waterLogs: waterLogs.map(w => ({ date: w.logged_at, amount: w.amount_ml })),
+        meals: meals.map(m => ({ name: m.meal_name, calories: m.calories })),
+      }, "evolution-report-content");
+      toast.success("Relatório gerado com sucesso!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao gerar relatório.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const totalWaterMl = waterLogs.reduce((sum, l) => sum + l.amount_ml, 0);
   const totalCalories = meals.reduce((sum, m) => sum + Number(m.calories), 0);
@@ -116,6 +156,16 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
               </p>
             </div>
             <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="hidden sm:flex bg-background" 
+                onClick={handleExportPDF}
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileDown className="h-4 w-4 mr-2" />}
+                Exportar PDF
+              </Button>
               <Button size="sm" variant="outline" className="hidden sm:flex bg-background" onClick={() => toast.success("Lembrete de hidratação enviado com sucesso!")}>
                 <BellRing className="h-4 w-4 mr-2" /> Lembrete 
               </Button>
@@ -232,7 +282,9 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
         </TabsContent>
 
         <TabsContent value="evolution" className="mt-4">
-          <EvolutionCharts patientId={patientId} />
+          <div id="evolution-report-content" className="bg-background">
+            <EvolutionCharts patientId={patientId} />
+          </div>
         </TabsContent>
 
         <TabsContent value="questionnaires" className="mt-4 space-y-4">

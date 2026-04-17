@@ -16,6 +16,10 @@ serve(async (req) => {
   try {
     const { email, type, sender_name } = await req.json();
 
+    if (!email || !type) {
+      throw new Error("E-mail e tipo de convite são obrigatórios.");
+    }
+
     let subject = "";
     let html = "";
 
@@ -50,6 +54,8 @@ serve(async (req) => {
       `;
     }
 
+    console.log(`Enviando e-mail para ${email} via Resend...`);
+
     const { data, error } = await resend.emails.send({
       from: "NutriTrack <onboarding@resend.dev>",
       to: [email],
@@ -58,18 +64,27 @@ serve(async (req) => {
     });
 
     if (error) {
-      console.error("Resend Error:", error);
-      return new Response(JSON.stringify({ error }), {
+      console.error("Resend Error Detail:", JSON.stringify(error));
+      
+      // Mensagem amigável para erro comum de sandbox do Resend
+      let errorMessage = error.message;
+      if (error.message?.includes("onboarding@resend.dev")) {
+        errorMessage = "O e-mail não foi enviado porque o domínio não está verificado no Resend. Em modo teste, você só pode enviar e-mails para o endereço da sua própria conta.";
+      }
+
+      return new Response(JSON.stringify({ error: errorMessage, details: error }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    console.log("E-mail enviado com sucesso:", data);
+
     return new Response(JSON.stringify({ success: true, data }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    console.error("Internal Error:", error);
+    console.error("Internal Server Error:", error.message);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

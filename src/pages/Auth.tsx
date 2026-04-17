@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Droplets } from "lucide-react";
+import { Droplets, User } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Auth = () => {
@@ -14,9 +14,17 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [isNutri, setIsNutri] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteData, setInviteData] = useState<{nutritionist_id: string; nutritionist_name: string} | null>(null);
 
   useEffect(() => {
-    // Detect password recovery mode from URL hash
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("invite");
+    if (token) {
+      setInviteToken(token);
+      validateInvite(token);
+    }
+
     if (window.location.hash && window.location.hash.includes("type=recovery")) {
       setView("update");
     }
@@ -30,6 +38,30 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const validateInvite = async (token: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("accept-invite", {
+        body: { token },
+      });
+      if (data?.success) {
+        setInviteData({
+          nutritionist_id: data.nutritionist_id,
+          nutritionist_name: data.nutritionist_name || "Seu Nutricionista"
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
+  const clearInviteFromUrl = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("invite");
+    window.history.replaceState({}, "", url.toString());
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -42,29 +74,48 @@ const Auth = () => {
         toast.success("Login realizado com sucesso!");
       }
     } else if (view === "signup") {
-      const { data: signUpData, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { full_name: fullName },
-          emailRedirectTo: window.location.origin,
+      const { data: signUpRes, error: signUpError } = await supabase.functions.invoke("create-user-confirmed", {
+        body: { 
+          email: email.trim().toLowerCase(), 
+          password, 
+          full_name: fullName,
+          role: isNutri ? "admin" : "patient"
         },
       });
 
-      if (error) {
-        toast.error(error.message);
-      } else if (signUpData.user && isNutri) {
-        const res = await supabase.functions.invoke("upgrade-to-nutri", {
-          body: { email: email.trim().toLowerCase(), user_id: signUpData.user.id },
-        });
-
-        if (res.error || (res.data && res.data.error)) {
-          toast.error(res.data?.error || "E-mail não possui um convite de nutricionista válido.");
-        } else {
-          toast.success("Conta de nutricionista criada! Verifique seu email.");
-        }
+      if (signUpError || (signUpRes && signUpRes.error)) {
+        toast.error(signUpRes?.error || "Erro ao criar conta.");
       } else {
-        toast.success("Conta criada! Verifique seu email para confirmar.");
+        const userId = signUpRes.user.id;
+
+        // Se for paciente e tiver convite, vincular ao nutri
+        if (!isNutri && inviteData?.nutritionist_id) {
+          const linkCode = Math.random().toString(36).substring(2, 10);
+          await supabase.from("nutritionist_patients").upsert({
+            nutritionist_id: inviteData.nutritionist_id,
+            patient_id: userId,
+            link_code: linkCode,
+          }, { onConflict: "nutritionist_id, patient_id" });
+          
+          if (inviteToken) {
+            await supabase.from("patient_invites")
+              .update({ status: "accepted", responded_at: new Date().toISOString() })
+              .eq("token", inviteToken);
+          }
+        }
+
+        // Login automático
+        const { error: signInError } = await supabase.auth.signInWithPassword({ 
+          email: email.trim().toLowerCase(), 
+          password 
+        });
+        
+        if (signInError) {
+          toast.error("Conta criada, mas erro ao entrar: " + signInError.message);
+        } else {
+          toast.success(!isNutri && inviteData ? `Conta vinculada a ${inviteData.nutritionist_name}!` : "Bem-vindo!");
+          clearInviteFromUrl();
+        }
       }
     } else if (view === "forgot") {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -98,11 +149,20 @@ const Auth = () => {
           <CardTitle className="text-2xl">NutriTrack</CardTitle>
           <CardDescription>
             {view === "login" && "Entre na sua conta"}
-            {view === "signup" && "Crie sua conta"}
+            {view === "signup" && inviteData ? `Você foi convidado por ${inviteData.nutritionist_name}` : "Crie sua conta"}
             {view === "forgot" && "Recuperar senha"}
             {view === "update" && "Definir nova senha"}
           </CardDescription>
         </CardHeader>
+        {(view === "signup" || view === "login") && inviteData && (
+          <div className="mb-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-3">
+            <User className="h-5 w-5 text-green-500 shrink-0" />
+            <div className="text-sm">
+              <p className="font-medium">Convite de {inviteData.nutritionist_name}</p>
+              <p className="text-muted-foreground text-xs">Aceite para se tornar paciente</p>
+            </div>
+          </div>
+        )}
         <CardContent>
           {view === "signup" && (
             <Tabs value={isNutri ? "nutri" : "patient"} onValueChange={(v) => setIsNutri(v === "nutri")} className="mb-4">

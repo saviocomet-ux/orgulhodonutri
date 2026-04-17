@@ -13,8 +13,12 @@ import LinkNutriDialog from "@/components/patient/LinkNutriDialog";
 import QuestionnaireList from "@/components/patient/QuestionnaireList";
 import PendingInvites from "@/components/patient/PendingInvites";
 import MealPlanView from "@/components/patient/MealPlanView";
+import { WeightTracker } from "@/components/patient/WeightTracker";
+import { PushNotificationManager } from "@/components/PushNotificationManager";
+import { PatientBooking } from "@/components/patient/PatientBooking";
 
 type WaterLog = Tables<"water_logs">;
+// ... (rest of imports/types)
 type Meal = Tables<"meals">;
 
 const Dashboard = () => {
@@ -99,6 +103,7 @@ const Dashboard = () => {
             <h1 className="text-lg font-semibold text-foreground">NutriTrack</h1>
           </div>
           <div className="flex items-center gap-1">
+            <PushNotificationManager />
             <Button variant="ghost" size="icon" onClick={() => setLinkDialogOpen(true)} title="Vincular nutricionista">
               <Link className="h-5 w-5" />
             </Button>
@@ -211,11 +216,17 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Weight Plan */}
+        <WeightTracker />
+
         {/* Meal Plan */}
         <MealPlanView />
 
         {/* Questionnaires */}
         <QuestionnaireList />
+
+        {/* Agenda / Booking */}
+        <PatientBooking />
       </main>
 
       <MealDialog open={mealDialogOpen} onOpenChange={setMealDialogOpen} onMealAdded={fetchTodayData} />

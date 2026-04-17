@@ -9,7 +9,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   profile: Profile | null;
-  role: "admin" | "patient" | null;
+  role: "manager" | "admin" | "patient" | null;
   isManager: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
@@ -33,7 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [role, setRole] = useState<"admin" | "patient" | null>(null);
+  const [role, setRole] = useState<"manager" | "admin" | "patient" | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       supabase.from("user_roles").select("role").eq("user_id", userId).single(),
     ]);
     setProfile(profileRes.data);
-    setRole((roleRes.data?.role as "admin" | "patient") ?? "patient");
+    setRole((roleRes.data?.role as "manager" | "admin" | "patient") ?? "patient");
   };
 
   const refreshProfile = async () => {
@@ -84,7 +84,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setRole(null);
   };
 
-  const isManager = user?.email === "saviox2008@gmail.com";
+  const isManager = role === "manager" || user?.email === "saviox2008@gmail.com";
 
   return (
     <AuthContext.Provider value={{ session, user, profile, role, isManager, loading, signOut, refreshProfile }}>
