@@ -14,11 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const { email, type, sender_name } = await req.json();
+    const { email, type, sender_name, invite_token } = await req.json();
 
     if (!email || !type) {
       throw new Error("E-mail e tipo de convite são obrigatórios.");
     }
+
+    const baseUrl = "https://orgulhodonutri.vercel.app/auth";
+    const inviteLink = invite_token ? `${baseUrl}?invite=${invite_token}` : baseUrl;
 
     let subject = "";
     let html = "";
@@ -30,9 +33,9 @@ serve(async (req) => {
           <h1 style="color: #4f46e5; text-align: center;">Bem-vindo ao NutriTrack!</h1>
           <p>Olá,</p>
           <p>O administrador da plataforma liberou o seu acesso como <strong>Nutricionista</strong>.</p>
-          <p>Para completar o seu cadastro e começar a atender seus pacientes, acesse o link abaixo:</p>
+          <p>Para completar o seu cadastro e começar a atender seus pacientes, acesso o link abaixo:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://orgulhodonutri.vercel.app/auth" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Completar Cadastro</a>
+            <a href="${baseUrl}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Completar Cadastro</a>
           </div>
           <hr style="border: 0; border-top: 1px solid #eee;" />
           <p style="font-size: 12px; color: #666; text-align: center;">NutriTrack - Acompanhamento Nutricional Profissional</p>
@@ -46,7 +49,7 @@ serve(async (req) => {
           <p>O nutricionista <strong>${sender_name}</strong> convidou você para realizar o acompanhamento nutricional no NutriTrack.</p>
           <p>Acesse a plataforma para aceitar o convite e começar sua jornada saudável:</p>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="https://orgulhodonutri.vercel.app/auth" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acessar NutriTrack</a>
+            <a href="${inviteLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Acessar NutriTrack</a>
           </div>
           <hr style="border: 0; border-top: 1px solid #eee;" />
           <p style="font-size: 12px; color: #666; text-align: center;">NutriTrack - Seu diário de saúde e nutrição</p>

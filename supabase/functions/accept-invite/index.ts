@@ -41,7 +41,11 @@ serve(async (req) => {
       success: true, 
       nutritionist_id: invite.nutritionist_id,
       nutritionist_name: invite.profiles?.full_name,
-      patient_email: invite.patient_email
+      patient_email: invite.patient_email,
+      patient_name: invite.patient_name,
+      patient_altura: invite.patient_altura,
+      patient_peso: invite.patient_peso,
+      patient_idade: invite.patient_idade
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
