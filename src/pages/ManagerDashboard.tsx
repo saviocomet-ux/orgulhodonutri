@@ -18,6 +18,7 @@ import {
   BarChart3,
   Ticket
 } from "lucide-react";
+import { 
   Pagination, 
   PaginationContent, 
   PaginationItem, 
@@ -282,9 +283,10 @@ const ManagerDashboard = () => {
                   </div>
                 )}
               </>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
+          </CardContent>
+        </Card>
+      </TabsContent>
 
         <TabsContent value="analytics">
           <AnalyticsPanel />
