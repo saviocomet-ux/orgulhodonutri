@@ -46,6 +46,10 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
       .insert({
         nutritionist_id: user.id,
         patient_email: patientData.email.toLowerCase().trim(),
+        patient_name: patientData.full_name.trim() || null,
+        patient_altura: patientData.altura ? parseFloat(patientData.altura) : null,
+        patient_peso: patientData.peso_atual ? parseFloat(patientData.peso_atual) : null,
+        patient_idade: patientData.idade ? parseInt(patientData.idade, 10) : null,
         status: "pending"
       })
       .select("token")

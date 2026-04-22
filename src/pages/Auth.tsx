@@ -15,7 +15,13 @@ const Auth = () => {
   const [isNutri, setIsNutri] = useState(false);
   const [loading, setLoading] = useState(false);
   const [inviteToken, setInviteToken] = useState<string | null>(null);
-  const [inviteData, setInviteData] = useState<{nutritionist_id: string; nutritionist_name: string} | null>(null);
+  const [inviteData, setInviteData] = useState<{
+    nutritionist_id: string; 
+    nutritionist_name: string;
+    patient_altura?: number;
+    patient_peso?: number;
+    patient_idade?: number;
+  } | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -47,8 +53,19 @@ const Auth = () => {
       if (data?.success) {
         setInviteData({
           nutritionist_id: data.nutritionist_id,
-          nutritionist_name: data.nutritionist_name || "Seu Nutricionista"
+          nutritionist_name: data.nutritionist_name || "Seu Nutricionista",
+          patient_altura: data.patient_altura,
+          patient_peso: data.patient_peso,
+          patient_idade: data.patient_idade
         });
+        if (data.patient_email) {
+          setEmail(data.patient_email);
+        }
+        if (data.patient_name) {
+          setFullName(data.patient_name);
+        }
+        setView("signup");
+        setIsNutri(false);
       }
     } catch (e) {
       console.error(e);
@@ -62,16 +79,55 @@ const Auth = () => {
     window.history.replaceState({}, "", url.toString());
   };
 
+  const syncPatientData = async (userId: string) => {
+    if (!inviteData) return;
+    
+    if (inviteData.patient_altura || inviteData.patient_idade) {
+      const updates: any = {};
+      if (inviteData.patient_altura) updates.altura = inviteData.patient_altura;
+      if (inviteData.patient_idade) updates.idade = inviteData.patient_idade;
+      
+      await supabase.from("profiles").update(updates).eq("user_id", userId);
+    }
+    
+    if (inviteData.patient_peso) {
+      await supabase.from("weight_logs").insert({ 
+        user_id: userId, 
+        weight_kg: inviteData.patient_peso 
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     if (view === "login") {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast.error(error.message);
       } else {
-        toast.success("Login realizado com sucesso!");
+        if (inviteData?.nutritionist_id && inviteToken) {
+          const userId = authData.user.id;
+          const linkCode = Math.random().toString(36).substring(2, 10);
+          
+          await supabase.from("nutritionist_patients").upsert({
+            nutritionist_id: inviteData.nutritionist_id,
+            patient_id: userId,
+            link_code: linkCode,
+          }, { onConflict: "nutritionist_id, patient_id" });
+          
+          await supabase.from("patient_invites")
+            .update({ status: "accepted", responded_at: new Date().toISOString() })
+            .eq("token", inviteToken);
+            
+          await syncPatientData(userId);
+          
+          toast.success(`Conta vinculada a ${inviteData.nutritionist_name}!`);
+          clearInviteFromUrl();
+        } else {
+          toast.success("Login realizado com sucesso!");
+        }
       }
     } else if (view === "signup") {
       const { data: signUpRes, error: signUpError } = await supabase.functions.invoke("create-user-confirmed", {
@@ -113,6 +169,9 @@ const Auth = () => {
         if (signInError) {
           toast.error("Conta criada, mas erro ao entrar: " + signInError.message);
         } else {
+          if (!isNutri && inviteData) {
+            await syncPatientData(userId);
+          }
           toast.success(!isNutri && inviteData ? `Conta vinculada a ${inviteData.nutritionist_name}!` : "Bem-vindo!");
           clearInviteFromUrl();
         }
@@ -164,7 +223,7 @@ const Auth = () => {
           </div>
         )}
         <CardContent>
-          {view === "signup" && (
+          {view === "signup" && !inviteData && (
             <Tabs value={isNutri ? "nutri" : "patient"} onValueChange={(v) => setIsNutri(v === "nutri")} className="mb-4">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="patient">Paciente</TabsTrigger>
@@ -188,6 +247,8 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                readOnly={!!inviteData && (view === "signup" || view === "login")}
+                className={!!inviteData && (view === "signup" || view === "login") ? "opacity-70 cursor-not-allowed" : ""}
               />
             )}
             {view !== "forgot" && (
