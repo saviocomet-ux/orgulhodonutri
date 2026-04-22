@@ -57,6 +57,13 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        info: "hsl(var(--info))",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -84,6 +91,14 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      transitionTimingFunction: {
+        smooth: "cubic-bezier(0.4, 0, 0.2, 1)",
+      },
+      boxShadow: {
+        soft: "0 2px 8px rgba(0, 0, 0, 0.08)",
+        card: "0 4px 12px rgba(0, 0, 0, 0.1)",
+        cardHover: "0 8px 24px rgba(0, 0, 0, 0.15)",
       },
     },
   },
