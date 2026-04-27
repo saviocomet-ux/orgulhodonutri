@@ -25,10 +25,15 @@ const Auth = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get("invite");
-    if (token) {
-      setInviteToken(token);
-      validateInvite(token);
+    const inviteToken = params.get("invite");
+    if (inviteToken) {
+      setInviteToken(inviteToken);
+      validateInvite(inviteToken);
+    }
+
+    const nutriToken = params.get("nutri_invite");
+    if (nutriToken) {
+      validateNutriInvite(nutriToken);
     }
 
     if (window.location.hash && window.location.hash.includes("type=recovery")) {
@@ -73,9 +78,36 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const validateNutriInvite = async (id: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("invite_codes")
+        .select("*")
+        .eq("id", id)
+        .eq("is_used", false)
+        .single();
+      
+      if (data) {
+        if (data.email) {
+          setEmail(data.email);
+        }
+        setIsNutri(true);
+        setView("signup");
+        toast.success("Convite de nutricionista validado!");
+      } else if (error) {
+        toast.error("Convite de nutricionista inválido ou já utilizado.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setLoading(false);
+  };
+
   const clearInviteFromUrl = () => {
     const url = new URL(window.location.href);
     url.searchParams.delete("invite");
+    url.searchParams.delete("nutri_invite");
     window.history.replaceState({}, "", url.toString());
   };
 
@@ -143,6 +175,20 @@ const Auth = () => {
         toast.error(signUpRes?.error || "Erro ao criar conta.");
       } else {
         const userId = signUpRes.user.id;
+
+        // Se for nutri e tiver convite, marcar como usado
+        if (isNutri) {
+          const nutriToken = new URLSearchParams(window.location.search).get("nutri_invite");
+          if (nutriToken) {
+            await supabase.from("invite_codes")
+              .update({ 
+                is_used: true, 
+                used_by: userId, 
+                used_at: new Date().toISOString() 
+              })
+              .eq("id", nutriToken);
+          }
+        }
 
         // Se for paciente e tiver convite, vincular ao nutri
         if (!isNutri && inviteData?.nutritionist_id) {
@@ -223,6 +269,13 @@ const Auth = () => {
           </div>
         )}
         <CardContent>
+          {view === "forgot" && (
+            <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-xs text-blue-600 font-medium">
+                Dica: Se você não tiver acesso ao seu e-mail, peça ao seu nutricionista (se for paciente) ou ao administrador (se for nutri) para resetar sua senha diretamente.
+              </p>
+            </div>
+          )}
           {view === "signup" && !inviteData && (
             <Tabs value={isNutri ? "nutri" : "patient"} onValueChange={(v) => setIsNutri(v === "nutri")} className="mb-4">
               <TabsList className="grid w-full grid-cols-2">

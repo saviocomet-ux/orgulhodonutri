@@ -35,7 +35,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
     peso_atual: "",
     idade: "",
   });
-  const [sendEmail, setSendEmail] = useState(true);
+  const [sendEmail, setSendEmail] = useState(false);
 
   const generateLink = async () => {
     if (!user) return;
@@ -45,7 +45,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
       .from("patient_invites")
       .insert({
         nutritionist_id: user.id,
-        patient_email: patientData.email.toLowerCase().trim(),
+        patient_email: patientData.email ? patientData.email.toLowerCase().trim() : null,
         patient_name: patientData.full_name.trim() || null,
         patient_altura: patientData.altura ? parseFloat(patientData.altura) : null,
         patient_peso: patientData.peso_atual ? parseFloat(patientData.peso_atual) : null,
@@ -66,7 +66,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
     const link = `${window.location.origin}/auth?invite=${data.token}`;
     setInviteLink(link);
 
-    if (sendEmail) {
+    if (sendEmail && patientData.email) {
       setSendingEmail(true);
       try {
         const { data: profileData } = await supabase
@@ -83,7 +83,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
             invite_token: data.token
           },
         });
-        toast.success("Convite enviado por-email!");
+        toast.success("Convite enviado por e-mail!");
       } catch (emailError) {
         console.error("Erro ao enviar email:", emailError);
         toast.error("Link gerado, mas falha ao enviar email.");
@@ -120,9 +120,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
 
   const isFormValid = () => {
     return (
-      patientData.full_name.trim() !== "" &&
-      patientData.email.trim() !== "" &&
-      patientData.email.includes("@")
+      patientData.full_name.trim() !== ""
     );
   };
 
@@ -136,7 +134,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
           {!inviteLink ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Preencha os dados do paciente para gerar o convite. Você pode adicionar dados antropométricos agora ou deixar para o paciente preencher.
+                Preencha os dados do paciente para gerar o convite. Você pode enviar o link diretamente via WhatsApp.
               </p>
               
               <div className="space-y-3">
@@ -155,13 +153,13 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
                 </div>
 
                 <div className="space-y-1">
-                  <Label htmlFor="email">E-mail</Label>
+                  <Label htmlFor="email">E-mail (opcional)</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="email@exemplo.com"
+                      placeholder="email@exemplo.com (opcional)"
                       value={patientData.email}
                       onChange={(e) => setPatientData(prev => ({ ...prev, email: e.target.value }))}
                       className="pl-9"
@@ -227,7 +225,7 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
                     className="w-4 h-4"
                   />
                   <Label htmlFor="sendEmail" className="text-sm cursor-pointer">
-                    Enviar convite por e-mail automáticamente
+                    Enviar convite por e-mail automaticamente {patientData.email ? "" : "(requer e-mail)"}
                   </Label>
                 </div>
               </div>
@@ -235,10 +233,10 @@ const InvitePatientDialog = ({ open, onOpenChange, onInvited }: InvitePatientDia
               <Button 
                 onClick={generateLink} 
                 className="w-full gap-2"
-                disabled={loading || !isFormValid()}
+                disabled={loading || !isFormValid() || (sendEmail && !patientData.email)}
               >
-                {loading ? "Gerando..." : sendingEmail ? "Enviando..." : sendEmail ? <Send className="h-4 w-4" /> : null}
-                {sendEmail ? "Gerar e Enviar Convite" : "Gerar Link de Convite"}
+                {loading ? "Gerando..." : sendingEmail ? "Enviando..." : (sendEmail && patientData.email) ? <Send className="h-4 w-4" /> : null}
+                {sendEmail && patientData.email ? "Gerar e Enviar Convite" : "Gerar Link de Convite"}
               </Button>
             </>
           ) : (

@@ -82,13 +82,19 @@ const ManagerDashboard = () => {
   }, [codes]);
 
   const handleInvite = async () => {
-    if (!inviteEmail || !inviteEmail.includes("@")) {
+    if (inviteEmail && !inviteEmail.includes("@")) {
       toast.error("Por favor, insira um e-mail válido.");
       return;
     }
-    await createInvite.mutateAsync(inviteEmail);
+    await createInvite.mutateAsync(inviteEmail || undefined);
     setInviteEmail("");
-    setPage(1); // Volta para a primeira página para ver o novo convite
+    setPage(1);
+  };
+
+  const copyNutriLink = (id: string) => {
+    const link = `${window.location.origin}/auth?nutri_invite=${id}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Link de convite copiado!");
   };
 
   const handleDeleteClick = (id: string) => {
@@ -201,23 +207,48 @@ const ManagerDashboard = () => {
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-lg font-bold tracking-widest text-primary">
-                            {code.email}
+                            {code.email || "Link Genérico"}
                           </span>
                           <Badge variant={code.is_used ? "secondary" : "default"} className={code.is_used ? "bg-muted text-muted-foreground" : "bg-green-500 hover:bg-green-600 text-white"}>
                             {code.is_used ? "Utilizado" : "Disponível"}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Criado em: {new Date(code.created_at).toLocaleString("pt-BR")}
+                          ID: {code.id.split('-')[0]}... | Criado em: {new Date(code.created_at).toLocaleString("pt-BR")}
                         </p>
                         {code.is_used && (
-                          <div className="mt-2 space-y-1">
-                            <p className="text-sm font-medium">
-                              Utilizado por: <span className="text-primary">{code.used_by ? profiles[code.used_by]?.name || "Carregando..." : "Desconhecido"}</span>
-                            </p>
-                            <p className="text-sm font-medium text-muted-foreground">
-                              Pacientes vinculados: <span className="text-foreground">{code.used_by ? profiles[code.used_by]?.count ?? "..." : 0}</span>
-                            </p>
+                          <div className="mt-2 space-y-2">
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">
+                                Utilizado por: <span className="text-primary">{code.used_by ? profiles[code.used_by]?.name || "Carregando..." : "Desconhecido"}</span>
+                              </p>
+                              <p className="text-sm font-medium text-muted-foreground">
+                                Pacientes vinculados: <span className="text-foreground">{code.used_by ? profiles[code.used_by]?.count ?? "..." : 0}</span>
+                              </p>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-destructive hover:bg-destructive/10 border-destructive/20 h-8 text-xs"
+                              onClick={async () => {
+                                const newPwd = prompt(`Digite a nova senha para ${profiles[code.used_by!]?.name || 'este nutricionista'} (mínimo 6 caracteres):`);
+                                if (newPwd && newPwd.length >= 6) {
+                                  try {
+                                    const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+                                      body: { userId: code.used_by, newPassword: newPwd },
+                                    });
+                                    if (error) throw error;
+                                    toast.success("Senha alterada com sucesso!");
+                                  } catch (err) {
+                                    toast.error("Erro ao alterar senha.");
+                                  }
+                                } else if (newPwd) {
+                                  toast.error("A senha deve ter pelo menos 6 caracteres.");
+                                }
+                              }}
+                            >
+                              <KeyRound className="h-3 w-3 mr-1" /> Resetar Senha
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -226,13 +257,24 @@ const ManagerDashboard = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => resendInvite.mutate(code.email)}
-                            disabled={resendInvite.isPending}
+                            onClick={() => copyNutriLink(code.id)}
                             className="flex-1 sm:flex-none"
                           >
-                            <Mail className="h-4 w-4 mr-2" />
-                            Reenviar
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copiar Link
                           </Button>
+                          {code.email && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resendInvite.mutate(code.email)}
+                              disabled={resendInvite.isPending}
+                              className="flex-1 sm:flex-none"
+                            >
+                              <Mail className="h-4 w-4 mr-2" />
+                              Reenviar
+                            </Button>
+                          )}
                           <Button
                             variant="destructive"
                             size="sm"

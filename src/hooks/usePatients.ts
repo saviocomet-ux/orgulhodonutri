@@ -50,3 +50,14 @@ export const usePatients = ({ nutriId, page = 1, pageSize = 10 }: UsePatientsOpt
     meta: { errorMessage: "Erro ao carregar pacientes" },
   });
 };
+export const usePatientMutations = () => {
+  return {
+    resetPassword: async (userId: string, newPassword: string) => {
+      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+        body: { userId, newPassword },
+      });
+      if (error) throw error;
+      return data;
+    }
+  };
+};

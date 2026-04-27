@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Tables } from "@/integrations/supabase/types";
-import { Flame, Droplets, Pencil, BellRing, Activity } from "lucide-react";
+import { Flame, Droplets, Pencil, BellRing, Activity, KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import EvolutionCharts from "@/components/nutri/EvolutionCharts";
 import EditPatientDialog from "@/components/nutri/EditPatientDialog";
@@ -171,6 +171,29 @@ const PatientDetail = ({ patientId }: { patientId: string }) => {
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-4 w-4 mr-1" /> Editar
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="bg-background text-destructive hover:bg-destructive/10 border-destructive/20"
+                onClick={async () => {
+                  const newPwd = prompt("Digite a nova senha para o paciente (mínimo 6 caracteres):");
+                  if (newPwd && newPwd.length >= 6) {
+                    try {
+                      const { data, error } = await supabase.functions.invoke("admin-reset-password", {
+                        body: { userId: patientId, newPassword: newPwd },
+                      });
+                      if (error) throw error;
+                      toast.success("Senha alterada com sucesso!");
+                    } catch (err) {
+                      toast.error("Erro ao alterar senha.");
+                    }
+                  } else if (newPwd) {
+                    toast.error("A senha deve ter pelo menos 6 caracteres.");
+                  }
+                }}
+              >
+                <KeyRound className="h-4 w-4 mr-1" /> Reset Senha
               </Button>
             </div>
           </div>

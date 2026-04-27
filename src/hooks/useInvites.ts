@@ -31,22 +31,26 @@ export const useManagerMutations = () => {
   const queryClient = useQueryClient();
 
   const createInvite = useMutation({
-    mutationFn: async (email: string) => {
-      const { error } = await supabase.from("invite_codes").insert({
-        email: email.trim().toLowerCase(),
-      });
+    mutationFn: async (email?: string) => {
+      const { data, error } = await supabase.from("invite_codes").insert({
+        email: email ? email.trim().toLowerCase() : null,
+      }).select("id").single();
+      
       if (error) throw error;
 
-      await supabase.functions.invoke("send-invite-email", {
-        body: { 
-          email: email.trim().toLowerCase(), 
-          type: "nutri" 
-        },
-      });
+      if (email) {
+        await supabase.functions.invoke("send-invite-email", {
+          body: { 
+            email: email.trim().toLowerCase(), 
+            type: "nutri" 
+          },
+        });
+      }
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invite_codes"] });
-      toast.success("Convite enviado com sucesso!");
+      toast.success("Convite criado com sucesso!");
     },
     meta: { errorMessage: "Erro ao convidar nutricionista" },
   });
